@@ -142,8 +142,9 @@ void DeclNode::typeAnalysis(TypeAnalysis * ta){
 }
 
 void VarDeclNode::typeAnalysis(TypeAnalysis * ta){
-	myType->typeAnalysis(ta);
-	auto type = ta->nodeType(myType);
+	// VarDecls always pass type analysis, since they 
+	// are never used in an expression. You may choose
+	// to type them void (like this), as discussed in class
 	ta->nodeType(this, BasicType::produce(VOID));
 }
 
@@ -156,7 +157,7 @@ void IndexNode::typeAnalysis(TypeAnalysis * ta) {
 	myOffset->typeAnalysis(ta);
 	auto type_base = ta->nodeType(myBase);
 	auto type_offset = ta->nodeType(myOffset);
-	if(baseType->asError() || offType->asError())
+	if(type_base->asError() || type_offset->asError())
 	{
 		ta->nodeType(this, ErrorType::produce());
 		return;
@@ -196,9 +197,27 @@ void GreaterNode::typeAnalysis(TypeAnalysis * ta) {}
 
 void GreaterEqNode::typeAnalysis(TypeAnalysis * ta ){}
 
-void NegNode::typeAnalysis(TypeAnalysis * ta) {}
+void NegNode::typeAnalysis(TypeAnalysis * ta){
+	myExp->typeAnalysis(ta);
+	auto subType = ta->nodeType(myExp);
+	if(!subType->isInt() && !subType->asError()){
+		ta->errMathOpd(myExp->line(), myExp->col());
+		ta->nodeType(this, ErrorType::produce());
+		return;
+	}
+	ta->nodeType(this, subType);
+}
 
-void NotNode::typeAnalysis(TypeAnalysis * ta) {}
+void NotNode::typeAnalysis(TypeAnalysis * ta){
+	myExp->typeAnalysis(ta);
+	auto subType = ta->nodeType(myExp);
+	if(!subType->isBool() && !subType->asError()){
+		ta->errLogicOpd(myExp->line(), myExp->col());
+		ta->nodeType(this, ErrorType::produce());
+		return;
+	}
+	ta->nodeType(this, subType);
+}
 
 void IntLitNode::typeAnalysis(TypeAnalysis * ta){
 	// IntLits never fail their type analysis and always
