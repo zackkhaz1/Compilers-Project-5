@@ -80,23 +80,94 @@ void AssignStmtNode::typeAnalysis(TypeAnalysis * ta){
 	}
 }
 
-void ReadStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void ReadStmtNode::typeAnalysis(TypeAnalysis * ta){
+	myDst->typeAnalysis(ta);
+	auto subType = ta->nodeType(myDst);
+	if(subType->asFn()){
+		ta->errReadFn(myDst->line(), myDst->col());
+		ta->nodeType(this, ErrorType::produce());
+	}
+	else{
+		ta->nodeType(this, BasicType::produce(VOID));
+	}
+}
 
-void WriteStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void WriteStmtNode::typeAnalysis(TypeAnalysis * ta){
+	mySrc->typeAnalysis(ta);
+	auto subType = ta->nodeType(mySrc);
+	if(subType->asFn()){
+		ta->errWriteFn(mySrc->line(), mySrc->col());
+		ta->nodeType(this, ErrorType::produce());
+	}
+	else if(subType->isVoid()){
+		ta->errWriteVoid(mySrc->line(), mySrc->col());
+		ta->nodeType(this, ErrorType::produce());
+	}
+	else if(subType->asArray()){
+		ta->errWriteArray(mySrc->line(), mySrc->col());
+		ta->nodeType(this, ErrorType::produce());
+	}
+	else{
+		ta->nodeType(this, BasicType::produce(VOID));
+	}
+}
 
 void PostDecStmtNode::typeAnalysis(TypeAnalysis * ta) {}
 
 void PostIncStmtNode::typeAnalysis(TypeAnalysis * ta) {}
 
-void IfStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void IfStmtNode::typeAnalysis(TypeAnalysis * ta){
+	myCond->typeAnalysis(ta);
+	auto condType = ta->nodeType(myCond);
+	if(!condType->isBool() && !condType->asError()){
+		ta->errIfCond(myCond->line(), myCond->col());
+		ta->nodeType(this, ErrorType::produce());
+	}
+	
+	for(auto stmt : *myBody){
+		stmt->typeAnalysis(ta);
+	}
+	ta->nodeType(this, BasicType::produce(VOID));
+}
 
-void IfElseStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void IfElseStmtNode::typeAnalysis(TypeAnalysis * ta){
+	myCond->typeAnalysis(ta);
+	auto condType = ta->nodeType(myCond);
+	if(!condType->isBool() && !condType->asError()){
+		ta->errIfCond(myCond->line(), myCond->col());
+		ta->nodeType(this, ErrorType::produce());
+	}
+	
+	for(auto stmt : *myBodyTrue){
+		stmt->typeAnalysis(ta);
+	}
 
-void WhileStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+	for(auto stmt : *myBodyFalse){
+		stmt->typeAnalysis(ta);
+	}
+	ta->nodeType(this, BasicType::produce(VOID));
+}
+
+void WhileStmtNode::typeAnalysis(TypeAnalysis * ta){
+	myCond->typeAnalysis(ta);
+	auto condType = ta->nodeType(myCond);
+	if(!condType->isBool() && !condType->asError()){
+		ta->errWhileCond(myCond->line(), myCond->col());
+		ta->nodeType(this, ErrorType::produce());
+	}
+	
+	for(auto stmt : *myBody){
+		stmt->typeAnalysis(ta);
+	}
+	ta->nodeType(this, BasicType::produce(VOID));
+}
 
 void ReturnStmtNode::typeAnalysis(TypeAnalysis * ta) {}
 
-void CallStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void CallStmtNode::typeAnalysis(TypeAnalysis * ta){
+	myCallExp->typeAnalysis(ta);
+	ta->nodeType(this, BasicType::produce(VOID));
+}
 
 void ExpNode::typeAnalysis(TypeAnalysis * ta){
 	TODO("Override me in the subclass");
