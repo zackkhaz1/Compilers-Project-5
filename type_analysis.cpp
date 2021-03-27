@@ -107,21 +107,22 @@ void WriteStmtNode::typeAnalysis(TypeAnalysis * ta){
 }
 
 void PostDecStmtNode::typeAnalysis(TypeAnalysis * ta) {
-	myLval->typeAnalysis(ta);
+	myLVal->typeAnalysis(ta);
 	auto lValType = ta->nodeType(myLVal);
 	if(!lValType->isInt())
 	{
-		ta->errMathOpd(myLVal->line(), myLVal->col();
+		ta->errMathOpd(myLVal->line(), myLVal->col());
+		ta->nodeType(this,ErrorType::produce());
 	}
 	ta->nodeType(this, BasicType::produce(VOID));
 }
 
 void PostIncStmtNode::typeAnalysis(TypeAnalysis * ta) {
-	myLval->typeAnalysis(ta);
+	myLVal->typeAnalysis(ta);
 	auto lValType = ta->nodeType(myLVal);
 	if(!lValType->isInt())
 	{
-		ta->errMathOpd(myLVal->line(), myLVal->col();
+		ta->errMathOpd(myLVal->line(), myLVal->col());
 		ta->nodeType(this,ErrorType::produce());
 	}
 	ta->nodeType(this, BasicType::produce(VOID));
