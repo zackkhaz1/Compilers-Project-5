@@ -244,13 +244,56 @@ void IndexNode::typeAnalysis(TypeAnalysis * ta) {
 
 void CallExpNode::typeAnalysis(TypeAnalysis * ta) {}
 
-void PlusNode::typeAnalysis(TypeAnalysis * ta) {}
+static bool mathOperandTypeAnalysis(TypeAnalysis * ta, ExpNode * oprd){
+	oprd->typeAnalysis(ta);
+	auto type = ta->nodeType(oprd);
+	if(type->isInt() || type->isByte()){
+		return true;
+	}
+	else{
+		ta->errMathOpd(oprd->line(), oprd->col());
+		return false;
+	}
+}
 
-void MinusNode::typeAnalysis(TypeAnalysis * ta) {}
+void BinaryExpNode::binaryMathTypeAnalysis(TypeAnalysis * ta){
+	bool validExp1 = mathOperandTypeAnalysis(ta, myExp1);
+	bool validExp2 = mathOperandTypeAnalysis(ta, myExp2);
+	if(validExp1 && validExp2){
+		auto myExp1Type = ta->nodeType(myExp1);
+		auto myExp2Type = ta->nodeType(myExp2);
+		if(myExp1Type->isInt() && myExp2Type->isInt()){
+			ta->nodeType(this, BasicType::produce(INT));
+			return;
+		}
+		if((myExp1Type->isInt() && myExp2Type->isByte()) || (myExp1Type->isByte() && myExp2Type->isInt())){
+			ta->nodeType(this, BasicType::produce(INT));
+			return;
+		}
+		if(myExp1Type->isByte() && myExp2Type->isByte()){
+			ta->nodeType(this, BasicType::produce(BYTE));
+			return;
+		}
+	}
+	ta->errMathOpd(this->line(), this->col());
+	ta->nodeType(this, ErrorType::produce());
+}
 
-void TimesNode::typeAnalysis(TypeAnalysis * ta) {}
+void PlusNode::typeAnalysis(TypeAnalysis * ta){
+	binaryMathTypeAnalysis(ta);
+}
 
-void DivideNode::typeAnalysis(TypeAnalysis * ta) {}
+void MinusNode::typeAnalysis(TypeAnalysis * ta){
+	binaryMathTypeAnalysis(ta);
+}
+
+void TimesNode::typeAnalysis(TypeAnalysis * ta){
+	binaryMathTypeAnalysis(ta);
+}
+
+void DivideNode::typeAnalysis(TypeAnalysis * ta){
+	binaryMathTypeAnalysis(ta);
+}
 
 void AndNode::typeAnalysis(TypeAnalysis * ta) {}
 
@@ -297,11 +340,11 @@ void IntLitNode::typeAnalysis(TypeAnalysis * ta){
 }
 
 void HavocNode::typeAnalysis(TypeAnalysis * ta){
-	ta->nodeType(this, BasicType::produce(VOID));
+	ta->nodeType(this, BasicType::produce(BOOL));
 }
 
 void StrLitNode::typeAnalysis(TypeAnalysis * ta){
-	ArrayType * byteArr = ArrayType::produce(BasicType::BYTE(), 1);
+	ArrayType * byteArr = ArrayType::produce(BasicType::produce(BYTE), 1);
 	ta->nodeType(this, byteArr);
 }
 
