@@ -63,12 +63,6 @@ void StmtNode::typeAnalysis(TypeAnalysis * ta){
 
 void AssignStmtNode::typeAnalysis(TypeAnalysis * ta){
 	myExp->typeAnalysis(ta);
-
-	//It can be a bit of a pain to write
-	// "const DataType *" everywhere, so here
-	// the use of auto is used instead to tell the
-	// compiler to figure out what the subType variable
-	// should be
 	auto subType = ta->nodeType(myExp);
 
 	// As error returns null if subType is NOT an error type
@@ -162,7 +156,34 @@ void WhileStmtNode::typeAnalysis(TypeAnalysis * ta){
 	ta->nodeType(this, BasicType::produce(VOID));
 }
 
-void ReturnStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void ReturnStmtNode::typeAnalysis(TypeAnalysis * ta){
+	auto funcType = ta->getCurrentFnType();
+	auto funcReturnType = funcType->getReturnType();
+
+	if(myExp != NULL){
+		if(funcReturnType != BasicType::VOID()){
+			myExp->typeAnalysis(ta);
+			auto subType = ta->nodeType(myExp);
+			if((subType != funcReturnType) && !subType->asError()){
+				ta->errRetWrong(myExp->line(), myExp->col());
+				ta->nodeType(this, ErrorType::produce());
+				return;
+			}
+		}
+		else{
+			myExp->typeAnalysis(ta);
+			ta->extraRetValue(myExp->line(), myExp->col());
+			ta->nodeType(this, ErrorType::produce());
+			return;
+		}
+	}
+	if(funcReturnType != BasicType::VOID()){
+		ta->errRetEmpty(this->line(), this->col());
+		ta->nodeType(this, ErrorType::produce());
+		return;
+	}
+	ta->nodeType(this, BasicType::VOID());
+}
 
 void CallStmtNode::typeAnalysis(TypeAnalysis * ta){
 	myCallExp->typeAnalysis(ta);
@@ -174,37 +195,24 @@ void ExpNode::typeAnalysis(TypeAnalysis * ta){
 }
 
 void AssignExpNode::typeAnalysis(TypeAnalysis * ta){
-	//TODO: Note that this function is incomplete.
-	// and needs additional code
-
-	//Do typeAnalysis on the subexpressions
 	myDst->typeAnalysis(ta);
 	mySrc->typeAnalysis(ta);
+	auto tgtType = ta->nodeType(myDst);
+	auto srcType = ta->nodeType(mySrc);
 
-	const DataType * tgtType = ta->nodeType(myDst);
-	const DataType * srcType = ta->nodeType(mySrc);
+	if(tgtType->asError() || srcType->asError()){
+		ta->nodeType(this, ErrorType::produce());
+		return;
+	}
 
-	//While incomplete, this gives you one case for
-	// assignment: if the types are exactly the same
-	// it is usually ok to do the assignment. One
-	// exception is that if both types are function
-	// names, it should fail type analysis
 	if (tgtType == srcType){
 		ta->nodeType(this, tgtType);
 		return;
 	}
 
-	//Some functions are already defined for you to
-	// report type errors. Note that these functions
-	// also tell the typeAnalysis object that the
-	// analysis has failed, meaning that main.cpp
-	// will print "Type check failed" at the end
+	// print "Type check failed" at the end
 	ta->errAssignOpr(this->line(), this->col());
-
-
-	//Note that reporting an error does not set the
-	// type of the current node, so setting the node
-	// type must be done
+	// set the current node type
 	ta->nodeType(this, ErrorType::produce());
 }
 
@@ -214,8 +222,7 @@ void DeclNode::typeAnalysis(TypeAnalysis * ta){
 
 void VarDeclNode::typeAnalysis(TypeAnalysis * ta){
 	// VarDecls always pass type analysis, since they 
-	// are never used in an expression. You may choose
-	// to type them void (like this), as discussed in class
+	// are never used in an expression
 	ta->nodeType(this, BasicType::produce(VOID));
 }
 
@@ -437,8 +444,6 @@ void NotNode::typeAnalysis(TypeAnalysis * ta){
 }
 
 void IntLitNode::typeAnalysis(TypeAnalysis * ta){
-	// IntLits never fail their type analysis and always
-	// yield the type INT
 	ta->nodeType(this, BasicType::produce(INT));
 }
 
