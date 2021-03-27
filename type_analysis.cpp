@@ -106,9 +106,26 @@ void WriteStmtNode::typeAnalysis(TypeAnalysis * ta){
 	}
 }
 
-void PostDecStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void PostDecStmtNode::typeAnalysis(TypeAnalysis * ta) {
+	myLval->typeAnalysis(ta);
+	auto lValType = ta->nodeType(myLVal);
+	if(!lValType->isInt())
+	{
+		ta->errMathOpd(myLVal->line(), myLVal->col();
+	}
+	ta->nodeType(this, BasicType::produce(VOID));
+}
 
-void PostIncStmtNode::typeAnalysis(TypeAnalysis * ta) {}
+void PostIncStmtNode::typeAnalysis(TypeAnalysis * ta) {
+	myLval->typeAnalysis(ta);
+	auto lValType = ta->nodeType(myLVal);
+	if(!lValType->isInt())
+	{
+		ta->errMathOpd(myLVal->line(), myLVal->col();
+		ta->nodeType(this,ErrorType::produce());
+	}
+	ta->nodeType(this, BasicType::produce(VOID));
+}
 
 void IfStmtNode::typeAnalysis(TypeAnalysis * ta){
 	myCond->typeAnalysis(ta);
@@ -117,7 +134,7 @@ void IfStmtNode::typeAnalysis(TypeAnalysis * ta){
 		ta->errIfCond(myCond->line(), myCond->col());
 		ta->nodeType(this, ErrorType::produce());
 	}
-	
+
 	for(auto stmt : *myBody){
 		stmt->typeAnalysis(ta);
 	}
@@ -131,7 +148,7 @@ void IfElseStmtNode::typeAnalysis(TypeAnalysis * ta){
 		ta->errIfCond(myCond->line(), myCond->col());
 		ta->nodeType(this, ErrorType::produce());
 	}
-	
+
 	for(auto stmt : *myBodyTrue){
 		stmt->typeAnalysis(ta);
 	}
@@ -149,7 +166,7 @@ void WhileStmtNode::typeAnalysis(TypeAnalysis * ta){
 		ta->errWhileCond(myCond->line(), myCond->col());
 		ta->nodeType(this, ErrorType::produce());
 	}
-	
+
 	for(auto stmt : *myBody){
 		stmt->typeAnalysis(ta);
 	}
@@ -221,7 +238,7 @@ void DeclNode::typeAnalysis(TypeAnalysis * ta){
 }
 
 void VarDeclNode::typeAnalysis(TypeAnalysis * ta){
-	// VarDecls always pass type analysis, since they 
+	// VarDecls always pass type analysis, since they
 	// are never used in an expression
 	ta->nodeType(this, BasicType::produce(VOID));
 }
