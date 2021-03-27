@@ -244,21 +244,57 @@ void IndexNode::typeAnalysis(TypeAnalysis * ta) {
 
 void CallExpNode::typeAnalysis(TypeAnalysis * ta) {}
 
-static bool mathOperandTypeAnalysis(TypeAnalysis * ta, ExpNode * oprd){
-	oprd->typeAnalysis(ta);
-	auto type = ta->nodeType(oprd);
-	if(type->isInt() || type->isByte()){
-		return true;
+static bool opdTypeAnalysis(TypeAnalysis * ta, ExpNode * opd, std::string opdCase){
+	bool validOpd = true;
+	opd->typeAnalysis(ta);
+	auto type = ta->nodeType(opd);
+
+	if(opdCase == "mathOpd"){
+		if(type->isInt() || type->isByte()){
+			validOpd = true;
+		}
+		else{
+			ta->errMathOpd(opd->line(), opd->col());
+			ta->nodeType(opd, ErrorType::produce());
+			validOpd = false;
+		}
 	}
-	else{
-		ta->errMathOpd(oprd->line(), oprd->col());
-		return false;
+	if(opdCase == "logicOpd"){
+		if(type->isBool()){
+			validOpd = true;
+		}
+		else{
+			ta->errLogicOpd(opd->line(), opd->col());
+			ta->nodeType(opd, ErrorType::produce());
+			validOpd = false;
+		}
 	}
+	if(opdCase == "eqOpd"){
+		if(type->isBool() || type->isByte() || type->isInt()){
+			validOpd = true;
+		}
+		else{
+			ta->errEqOpd(opd->line(), opd->col());
+			ta->nodeType(opd, ErrorType::produce());
+			validOpd = false;
+		}
+	}
+	if(opdCase == "relOpd"){
+		if(type->isInt() || type->isByte()){
+			validOpd = true;
+		}
+		else{
+			ta->errRelOpd(opd->line(), opd->col());
+			ta->nodeType(opd, ErrorType::produce());
+			validOpd = false;
+		}
+	}
+	return validOpd;
 }
 
-void BinaryExpNode::binaryMathTypeAnalysis(TypeAnalysis * ta){
-	bool validExp1 = mathOperandTypeAnalysis(ta, myExp1);
-	bool validExp2 = mathOperandTypeAnalysis(ta, myExp2);
+void BinaryExpNode::mathTypeAnalysis(TypeAnalysis * ta){
+	bool validExp1 = opdTypeAnalysis(ta, myExp1, "mathOpd");
+	bool validExp2 = opdTypeAnalysis(ta, myExp2, "mathOpd");
 	if(validExp1 && validExp2){
 		auto myExp1Type = ta->nodeType(myExp1);
 		auto myExp2Type = ta->nodeType(myExp2);
@@ -280,36 +316,103 @@ void BinaryExpNode::binaryMathTypeAnalysis(TypeAnalysis * ta){
 }
 
 void PlusNode::typeAnalysis(TypeAnalysis * ta){
-	binaryMathTypeAnalysis(ta);
+	mathTypeAnalysis(ta);
 }
 
 void MinusNode::typeAnalysis(TypeAnalysis * ta){
-	binaryMathTypeAnalysis(ta);
+	mathTypeAnalysis(ta);
 }
 
 void TimesNode::typeAnalysis(TypeAnalysis * ta){
-	binaryMathTypeAnalysis(ta);
+	mathTypeAnalysis(ta);
 }
 
 void DivideNode::typeAnalysis(TypeAnalysis * ta){
-	binaryMathTypeAnalysis(ta);
+	mathTypeAnalysis(ta);
 }
 
-void AndNode::typeAnalysis(TypeAnalysis * ta) {}
+void BinaryExpNode::logicTypeAnalysis(TypeAnalysis * ta){
+	bool validExp1 = opdTypeAnalysis(ta, myExp1, "logicOpd");
+	bool validExp2 = opdTypeAnalysis(ta, myExp2, "logicOpd");
+	if(validExp1 && validExp2){
+		auto myExp1Type = ta->nodeType(myExp1);
+		auto myExp2Type = ta->nodeType(myExp2);
+		if(myExp1Type->isBool() && myExp2Type->isBool()){
+			ta->nodeType(this, BasicType::produce(BOOL));
+			return;
+		}
+	}
+	ta->nodeType(this, ErrorType::produce());
+}
 
-void OrNode::typeAnalysis(TypeAnalysis * ta) {}
+void AndNode::typeAnalysis(TypeAnalysis * ta){
+	logicTypeAnalysis(ta);
+}
 
-void EqualsNode::typeAnalysis(TypeAnalysis * ta) {}
+void OrNode::typeAnalysis(TypeAnalysis * ta){
+	logicTypeAnalysis(ta);
+}
 
-void NotEqualsNode::typeAnalysis(TypeAnalysis * ta) {}
+void BinaryExpNode::equalityTypeAnalysis(TypeAnalysis * ta){
+	bool validExp1 = opdTypeAnalysis(ta, myExp1, "eqOpd");
+	bool validExp2 = opdTypeAnalysis(ta, myExp2, "eqOpd");
+	if(validExp1 && validExp2){
+		auto myExp1Type = ta->nodeType(myExp1);
+		auto myExp2Type = ta->nodeType(myExp2);
+		if(myExp1Type == myExp2Type){
+			ta->nodeType(this, BasicType::produce(BOOL));
+			return;
+		}
+	}
+	ta->errEqOpr(this->line(), this->col());
+	ta->nodeType(this, ErrorType::produce());
+}
 
-void LessNode::typeAnalysis(TypeAnalysis * ta) {}
+void EqualsNode::typeAnalysis(TypeAnalysis * ta){
+	equalityTypeAnalysis(ta);
+}
 
-void LessEqNode::typeAnalysis(TypeAnalysis * ta) {}
+void NotEqualsNode::typeAnalysis(TypeAnalysis * ta){
+	equalityTypeAnalysis(ta);
+}
 
-void GreaterNode::typeAnalysis(TypeAnalysis * ta) {}
+void BinaryExpNode::relationalTypeAnalysis(TypeAnalysis * ta){
+	bool validExp1 = opdTypeAnalysis(ta, myExp1, "relOpd");
+	bool validExp2 = opdTypeAnalysis(ta, myExp2, "relOpd");
+	if(validExp1 && validExp2){
+		auto myExp1Type = ta->nodeType(myExp1);
+		auto myExp2Type = ta->nodeType(myExp2);
+		if(myExp1Type->isInt() && myExp2Type->isInt()){
+			ta->nodeType(this, BasicType::produce(BOOL));
+			return;
+		}
+		if((myExp1Type->isInt() && myExp2Type->isByte()) || (myExp1Type->isByte() && myExp2Type->isInt())){
+			ta->nodeType(this, BasicType::produce(BOOL));
+			return;
+		}
+		if(myExp1Type->isByte() && myExp2Type->isByte()){
+			ta->nodeType(this, BasicType::produce(BOOL));
+			return;
+		}
+	}
+	ta->nodeType(this, ErrorType::produce());
+}
 
-void GreaterEqNode::typeAnalysis(TypeAnalysis * ta ){}
+void LessNode::typeAnalysis(TypeAnalysis * ta){
+	relationalTypeAnalysis(ta);
+}
+
+void LessEqNode::typeAnalysis(TypeAnalysis * ta){
+	relationalTypeAnalysis(ta);
+}
+
+void GreaterNode::typeAnalysis(TypeAnalysis * ta){
+	relationalTypeAnalysis(ta);
+}
+
+void GreaterEqNode::typeAnalysis(TypeAnalysis * ta ){
+	relationalTypeAnalysis(ta);
+}
 
 void NegNode::typeAnalysis(TypeAnalysis * ta){
 	myExp->typeAnalysis(ta);

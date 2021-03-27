@@ -300,7 +300,10 @@ public:
 	: ExpNode(lIn, cIn), myExp1(lhs), myExp2(rhs) { }
 	bool nameAnalysis(SymbolTable * symTab) override;
 	virtual void typeAnalysis(TypeAnalysis *) override = 0;
-	void binaryMathTypeAnalysis(TypeAnalysis * ta);
+	void mathTypeAnalysis(TypeAnalysis * ta);
+	void logicTypeAnalysis(TypeAnalysis * ta);
+	void equalityTypeAnalysis(TypeAnalysis * ta);
+	void relationalTypeAnalysis(TypeAnalysis * ta);
 protected:
 	ExpNode * myExp1;
 	ExpNode * myExp2;
