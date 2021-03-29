@@ -270,7 +270,42 @@ void IndexNode::typeAnalysis(TypeAnalysis * ta) {
 
 }
 
-void CallExpNode::typeAnalysis(TypeAnalysis * ta) {}
+void CallExpNode::typeAnalysis(TypeAnalysis * ta) {
+	for (auto arg : *myArgs)
+	{
+		arg->typeAnalysis(ta);
+	}
+	const DataType * idType = myID->getSymbol()->getDataType();
+	const FnType * fType = idType->asFn();
+	if(myArgs->size() != fType->getFormalTypes()->size())
+	{
+		ta->errArgCount(myID->line(), col());
+	}
+	else{
+			std::list<ExpNode*>::iterator acItr = myArgs->begin();
+			std::list<ExpNode*>::iterator actualsBegin = myArgs->begin();
+		  auto formalTypesBegin = fType->getFormalTypes()->begin();
+			while(acItr != myArgs->end()){
+
+					const DataType * actualType = ta->nodeType(*acItr);
+					const ExpNode * actual = *actualsBegin;
+					const DataType * formalType =  *formalTypesBegin;
+
+					actualsBegin++;
+					acItr++;
+					formalTypesBegin++;
+					if (!actualType->asError() && !formalType->asError()
+					&& formalType != actualType)
+					{
+						ta->errArgMatch(actual->line(), actual->col());
+					}
+			}
+	}
+
+	ta->nodeType(this, fType->getReturnType());
+
+}
+
 
 static bool opdTypeAnalysis(TypeAnalysis * ta, ExpNode * opd, std::string opdCase){
 	bool validOpd = true;
