@@ -43,16 +43,22 @@ void ProgramNode::typeAnalysis(TypeAnalysis * ta){
 
 void FnDeclNode::typeAnalysis(TypeAnalysis * ta){
 
-	//HINT: you might want to change the signature for
-	// typeAnalysis on FnBodyNode to take a second
-	// argument which is the type of the current
-	// function. This will help you to know at a
-	// return statement whether the return type matches
-	// the current function
-
-	//Note: this function may need extra code
-
-	for (auto stmt : *myBody){
+ ta->nodeType(this, ta->getCurrentFnType());
+    std::list<const DataType *> * formals = new std::list<const DataType *>();
+    for(auto formal : *(this->myFormals))
+    {
+        auto fType = formal->getTypeNode()->getType();
+        formals->push_back(fType);
+    }
+    auto ret = this->getRetTypeNode()->getType();
+    FnType * functionType = new FnType(formals, ret);
+    ta->setCurrentFnType(functionType);
+    for (auto stmt : *myBody)
+    {
+        stmt->typeAnalysis(ta);
+    }
+	for (auto stmt : *myBody)
+	{
 		stmt->typeAnalysis(ta);
 	}
 }
