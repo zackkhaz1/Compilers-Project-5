@@ -39,4 +39,4 @@ lexer.o: lexer.yy.cc
 	$(CXX) $(FLAGS) -Wno-sign-compare -Wno-sign-conversion -Wno-old-style-cast -Wno-switch-default -g -std=c++14 -c lexer.yy.cc -o lexer.o
 
 test: all
-	make -C p4_tests
+	make -C p5_tests

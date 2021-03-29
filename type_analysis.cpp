@@ -57,10 +57,7 @@ void FnDeclNode::typeAnalysis(TypeAnalysis * ta){
     {
         stmt->typeAnalysis(ta);
     }
-	for (auto stmt : *myBody)
-	{
-		stmt->typeAnalysis(ta);
-	}
+
 }
 
 void StmtNode::typeAnalysis(TypeAnalysis * ta){
@@ -286,7 +283,7 @@ static bool opdTypeAnalysis(TypeAnalysis * ta, ExpNode * opd, std::string opdCas
 		}
 		else{
 			ta->errMathOpd(opd->line(), opd->col());
-			ta->nodeType(opd, ErrorType::produce());
+		  ta->nodeType(opd, ErrorType::produce());
 			validOpd = false;
 		}
 	}
@@ -342,7 +339,6 @@ void BinaryExpNode::mathTypeAnalysis(TypeAnalysis * ta){
 			return;
 		}
 	}
-	ta->errMathOpd(this->line(), this->col());
 	ta->nodeType(this, ErrorType::produce());
 }
 
