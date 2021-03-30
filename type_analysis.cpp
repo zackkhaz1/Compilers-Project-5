@@ -43,7 +43,7 @@ void ProgramNode::typeAnalysis(TypeAnalysis * ta){
 
 void FnDeclNode::typeAnalysis(TypeAnalysis * ta){
 
- ta->nodeType(this, ta->getCurrentFnType());
+	ta->nodeType(this, ta->getCurrentFnType());
     std::list<const DataType *> * formals = new std::list<const DataType *>();
     for(auto formal : *(this->myFormals))
     {
@@ -198,10 +198,12 @@ void ReturnStmtNode::typeAnalysis(TypeAnalysis * ta){
 			return;
 		}
 	}
-	if(funcReturnType != BasicType::VOID()){
-		ta->errRetEmpty(this->line(), this->col());
-		ta->nodeType(this, ErrorType::produce());
-		return;
+	else{
+		if(funcReturnType != BasicType::VOID()){
+			ta->errRetEmpty(this->line(), this->col());
+			ta->nodeType(this, ErrorType::produce());
+			return;
+		}
 	}
 	ta->nodeType(this, BasicType::VOID());
 }
@@ -222,6 +224,18 @@ void AssignExpNode::typeAnalysis(TypeAnalysis * ta){
 	auto srcType = ta->nodeType(mySrc);
 
 	if(tgtType->asError() || srcType->asError()){
+		ta->nodeType(this, ErrorType::produce());
+		return;
+	}
+
+	if(!tgtType->validVarType()){
+		ta->errAssignOpd(myDst->line(), myDst->col());
+		ta->nodeType(this, ErrorType::produce());
+		return;
+	}
+
+	if(!srcType->validVarType()){
+		ta->errAssignOpd(mySrc->line(), mySrc->col());
 		ta->nodeType(this, ErrorType::produce());
 		return;
 	}
@@ -268,6 +282,11 @@ void IndexNode::typeAnalysis(TypeAnalysis * ta) {
 		ta->errArrayIndex(myOffset->line(),myOffset->col());
 	}
 
+	auto isArr = type_base->asArray();
+	if(isArr == nullptr){
+		ta->nodeType(this, ErrorType::produce());
+		ta->errArrayID(myOffset->line(), myOffset->col()-2);
+	}
 }
 
 void CallExpNode::typeAnalysis(TypeAnalysis * ta) {
@@ -277,29 +296,41 @@ void CallExpNode::typeAnalysis(TypeAnalysis * ta) {
 	}
 	const DataType * idType = myID->getSymbol()->getDataType();
 	const FnType * fType = idType->asFn();
-	if(myArgs->size() != fType->getFormalTypes()->size())
+
+	if(fType != nullptr)
 	{
-		ta->errArgCount(myID->line(), col());
-	}
-	else{
+		if(myArgs->size() != fType->getFormalTypes()->size())
+		{
+			ta->errArgCount(myID->line(), myID->col());
+			ta->nodeType(this, ErrorType::produce());
+		}
+		else
+		{
 			std::list<ExpNode*>::iterator acItr = myArgs->begin();
 			std::list<ExpNode*>::iterator actualsBegin = myArgs->begin();
-		  auto formalTypesBegin = fType->getFormalTypes()->begin();
+			auto formalTypesBegin = fType->getFormalTypes()->begin();
 			while(acItr != myArgs->end()){
 
-					const DataType * actualType = ta->nodeType(*acItr);
-					const ExpNode * actual = *actualsBegin;
-					const DataType * formalType =  *formalTypesBegin;
+				const DataType * actualType = ta->nodeType(*acItr);
+				const ExpNode * actual = *actualsBegin;
+				const DataType * formalType =  *formalTypesBegin;
 
-					actualsBegin++;
-					acItr++;
-					formalTypesBegin++;
-					if (!actualType->asError() && !formalType->asError()
-					&& formalType != actualType)
-					{
-						ta->errArgMatch(actual->line(), actual->col());
-					}
+				actualsBegin++;
+				acItr++;
+				formalTypesBegin++;
+				if (!actualType->asError() && !formalType->asError()
+				&& formalType != actualType)
+				{
+					ta->errArgMatch(actual->line(), actual->col());
+				}
 			}
+		}
+	}
+	else
+	{
+		ta->errCallee(myID->line(), myID->col());
+		ta->nodeType(this, ErrorType::produce());
+		return;
 	}
 
 	ta->nodeType(this, fType->getReturnType());
@@ -318,7 +349,7 @@ static bool opdTypeAnalysis(TypeAnalysis * ta, ExpNode * opd, std::string opdCas
 		}
 		else{
 			ta->errMathOpd(opd->line(), opd->col());
-		  ta->nodeType(opd, ErrorType::produce());
+			ta->nodeType(opd, ErrorType::produce());
 			validOpd = false;
 		}
 	}
@@ -421,13 +452,13 @@ void BinaryExpNode::equalityTypeAnalysis(TypeAnalysis * ta){
 	if(validExp1 && validExp2){
 		auto myExp1Type = ta->nodeType(myExp1);
 		auto myExp2Type = ta->nodeType(myExp2);
-		if(myExp1Type == myExp2Type){
-			ta->nodeType(this, BasicType::produce(BOOL));
+		if(myExp1Type != myExp2Type){
+			ta->errEqOpr(this->line(), this->col());
+			ta->nodeType(this, ErrorType::produce());
 			return;
 		}
 	}
-	ta->errEqOpr(this->line(), this->col());
-	ta->nodeType(this, ErrorType::produce());
+	ta->nodeType(this, BasicType::produce(BOOL));
 }
 
 void EqualsNode::typeAnalysis(TypeAnalysis * ta){

@@ -69,17 +69,17 @@ public:
 	void errWriteFn(size_t line, size_t col){
 		hasError = true;
 		Report::fatal(line, col,
-			"Attempt to output a function");
+			"Attempt to write a function");
 	}
 	void errWriteVoid(size_t line, size_t col){
 		hasError = true;
 		Report::fatal(line, col, 
-			"Attempt to output void");
+			"Attempt to write void");
 	}
 	void errWriteArray(size_t line, size_t col){
 		hasError = true;
 		Report::fatal(line, col,
-			"Attempt to output array");
+			"Attempt to write array");
 	}
 	void errReadFn(size_t line, size_t col){
 		hasError = true;
